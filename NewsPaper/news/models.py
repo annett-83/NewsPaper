@@ -8,11 +8,12 @@ class Author(models.Model):
     ratingAuthor = models.SmallIntegerField(default=0)
 #пропуск одна строка
     def update_rating(self): #рализовать через for
-        postRat = self.post_set.aggregate(postRating=Sum('rating')) # получаем значения из поля рэйтинг класса Post
+        postRat = self.post_set.all().aggregate(postRating=Sum('rating')) # получаем значения из поля рэйтинг класса Post
         pRat = 0
         pRat += postRat.get('postRating') # выводим результат подсчета
+
 #тоже самое с коментариями
-        commentRat = self.authorUser.comment_set.aggregate(commentRating=Sum('rating'))
+        commentRat = self.authorUser.comment_set.all().aggregate(commentRating=Sum('rating'))
         cRat = 0
         cRat += commentRat.get('commentRating')
         # подсчитываем рейтинг автора и сохраняем
@@ -23,10 +24,8 @@ class Author(models.Model):
 class Category(models.Model):
     name = models.CharField(max_length=64, unique=True) #значения max_length берут как 2 в  степени
 
-
 class Post(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
-
     NEWS = 'NW'
     ARTICLE = 'AR'
     CATEGORY_CHOICES = (
