@@ -3,9 +3,11 @@ from django.contrib.auth.models import User
 from django.db.models import Sum
 from django.core.validators import MinValueValidator
 
+
 class Author(models.Model):
     authorUser = models.OneToOneField(User, on_delete=models.CASCADE)
     ratingAuthor = models.SmallIntegerField(default=0)
+
 #пропуск одна строка
     def update_rating(self): #рализовать через for
         postRat = self.post_set.all().aggregate(postRating=Sum('rating')) # получаем значения из поля рэйтинг класса Post
@@ -20,6 +22,12 @@ class Author(models.Model):
         self.ratingAuthor = pRat * 3 + cRat
         self.save()
 # пропук 2 строки
+
+    def __str__(self):
+        return self.authorUser.username + ' ' + self.authorUser.last_name
+
+
+
 
 class Category(models.Model):
     name = models.CharField(max_length=64, unique=True) #значения max_length берут как 2 в  степени
@@ -41,7 +49,15 @@ class Post(models.Model):
     postCategory = models.ManyToManyField(Category, through='PostCategory')
     title = models.CharField(max_length=128)
     text = models.TextField() # ohne Begrenzung
+    quantity = models.IntegerField(default=0,
+                                   validators=[MinValueValidator(0,'Quantity should be >=0')]
+                                   )# 8/12 change
     rating = models.SmallIntegerField(default=0)
+
+
+    def _str_(self):
+        return f'{self.post}{self.quantity}'
+
     def like(self):
         self.rating +=1
         self.save()
@@ -53,6 +69,15 @@ class Post(models.Model):
     def preview(self):
         return self.text[0:123] + '...' #в больших проектах использовать форматирование что бы экономить память
 
+    def get_absolute_url(self):
+        from django.urls import reverse# sucht uel yum object seldst
+        return reverse('article', kwargs={'pk': self.pk})
+
+    def __str__(self):
+        return f'{self.title} {self.text}'
+
+    def get_absolute_url(self):  # добавим абсолютный путь, чтобы после создания нас перебрасывало на страницу с товаром
+        return f'/post/{self.id}'
 
 class PostCategory(models.Model):
     postThrough = models.ForeignKey(Post, on_delete=models.CASCADE)

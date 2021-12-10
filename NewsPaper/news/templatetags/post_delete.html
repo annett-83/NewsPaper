@@ -1,0 +1,34 @@
+{% extends 'flatpages/default.html' %}
+
+{% block title %} Post list {% endblock title %}
+
+{% block content %}
+<h2>WIRKLICH lÖSCHEN</h2>
+<table>
+    <thead>
+        <th>
+            Name
+        </th>
+        <th>
+           Title
+        </th>
+        <th>
+            Text
+        </th>
+    </thead>
+    <tr>
+        <td>
+            {{ author.name}}
+        </td>
+        <td>
+            {{ post.title}}
+        </td>
+        <td>
+            {{ post.text }}
+        </td>
+    </tr>
+</table>
+<form method="POST">
+    {% csrf_token %}
+    <input type="submit" value="bestädigen"></form>
+{% endblock content %}
