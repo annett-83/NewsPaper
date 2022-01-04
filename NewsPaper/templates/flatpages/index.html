@@ -1,0 +1,12 @@
+{% extends 'flatpages/default.html' %}
+
+{% block content %}
+<h2>Autorisierte Benutzerseite {{request.user.username}}</h2>
+<div> Dies kann persönliche Informationen für jeden Benutzer enthalten. </div>
+{% if True %}
+<button> <a href="sign/logout/">logout</a> </button>
+{% endif %}
+{% if is_not_premium %}
+<button> <a href="sign/upgrade/"> Ich möchte Premium!</a> </button>
+{% endif %}
+{% endblock %}

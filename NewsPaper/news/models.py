@@ -1,7 +1,9 @@
+from django.contrib.auth.decorators import login_required
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models import Sum
 from django.core.validators import MinValueValidator
+
 
 
 class Author(models.Model):
@@ -41,8 +43,8 @@ class Post(models.Model):
     NEWS = 'NW'
     ARTICLE = 'AR'
     CATEGORY_CHOICES = (
-        (NEWS, 'Новость'),
-        (ARTICLE, 'Статья'),
+        (NEWS, 'Nachrichten'),
+        (ARTICLE, 'Artikel'),
     )
     categoryType = models.CharField(max_length=2, choices=CATEGORY_CHOICES, default=ARTICLE)
     dateCreation = models.DateTimeField(auto_now_add=True) #автоиатически выставл. врея поста
@@ -76,8 +78,16 @@ class Post(models.Model):
     def __str__(self):
         return f'{self.title} {self.text}'
 
-    def get_absolute_url(self):  # добавим абсолютный путь, чтобы после создания нас перебрасывало на страницу с товаром
-        return f'/post/{self.id}'
+    def get_edit_url(self):
+        from django.urls import reverse
+        return reverse('post_edit', kwargs={'pk': self.pk})
+
+    def get_delete_url(self):
+        from django.urls import reverse
+        return reverse('post_delete', kwargs={'pk': self.pk})
+    # def get_absolute_urx(self):  # добавим абсолютный путь, чтобы после создания нас перебрасывало на страницу с товаром
+    #     return f'/post/{self.id}'
+
 
 class PostCategory(models.Model):
     postThrough = models.ForeignKey(Post, on_delete=models.CASCADE)

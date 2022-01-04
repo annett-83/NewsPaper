@@ -1,0 +1,9 @@
+{% extends 'flatpages/default.html' %}
+
+
+{% block content %}
+<h1>Artikel löschen</h1>
+<form method="POST">
+    {% csrf_token %}
+    <input type="submit" value="bestätigen"></form>
+{% endblock content %}

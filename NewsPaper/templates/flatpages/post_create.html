@@ -1,0 +1,24 @@
+{% extends 'flatpages/default.html' %}
+
+
+{% block content %}
+<h1>Artikel hinzufügen</h1>
+<form method="POST">
+    {% csrf_token %}
+    {{form.as_p}}
+
+<!--    <label for="data">dataCreation</label>-->
+<!--    <input>-->
+
+    <!-- Здесь будет список категорий.  -->
+<!--    <select name="category" size="4">-->
+
+      {% for category in categorys %}
+        <option value="{{ category.id }}">
+            {{ category.name }}
+        </option>
+      {% endfor %}
+    </select>
+    <input type="submit" value="Artikel hinzufügen">
+</form>
+{% endblock content %}

@@ -1,11 +1,23 @@
+from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
 from.models import Author, Category,Post,PostCategory
 from datetime import datetime
 from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.core.paginator import Paginator
 from .filters import PostFilter
-from .forms import PostForm#
+from .forms import PostForm
+from .forms import PostDeleteForm
+from django.contrib.auth.decorators import login_required #17/12
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils.decorators import method_decorator # blockiert class
+from django.views.generic import TemplateView
+
+
+# blockiert class
+#class ProtectedView(LoginRequiredMixin, TemplateView):#17/12
+    #template_name = 'flatpages/news.html'
 
 
 class PostList(ListView):
@@ -37,34 +49,92 @@ def post(self,request,*args,**kwargs):#ch
     return super().get(request,*args,**kwargs)
 
 
-
-
 class PostDetail(DetailView):
     model=Post
     template_name = 'flatpages/new.html'
     context_object_name = 'post'
     queryset = Post.objects.all()#
 
-class PostCreateView(CreateView):#
-    template_name='flatpages/post_create.html'
-    form_class=PostForm
+@login_required(login_url='/accounts/login/') #18/12
+def post_create(request):
+    if request.method == 'POST':
+        form = PostForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('post_create')
+    else:
+        form = PostForm()
+    return render(request,
+                  'flatpages/post_create.html',
+                  {
+                      'form': form
+                  })
 
 
-# дженерик для редактирования объекта
-class PostUpdateView(UpdateView):
-    template_name = 'flatpages/post_create.html'
-    form_class = PostForm
+@login_required(login_url='/accounts/login/') #18/12
+def post_edit(request, pk=None):
+    post = get_object_or_404(Post, pk=pk)
+    if request.method == "POST":
+        form = PostForm(request.POST,
+                        instance=post)
+        if form.is_valid():
+            form.save()
+            return redirect('post_create')
+    else:
+        form = PostForm(instance=post)
 
-    # метод get_object мы используем вместо queryset, чтобы получить информацию об объекте, который мы собираемся редактировать
-    def get_object(self, **kwargs):
-        id = self.kwargs.get('pk')
-        return Post.objects.get(pk=id)
+    return render(request,
+                  'flatpages/post_edit.html',
+                  {
+                      'form': form,
+                      'post': post
+                  })
 
 
-# дженерик для удаления товара
-class PostDeleteView(DeleteView):
-    template_name = 'flatpages/post_delete.html'
-    queryset = Post.objects.all()
-    success_url = '/post/'
+@login_required(login_url='/accounts/login/') #18/12
+def post_delete(request, pk=None):
+    post = get_object_or_404(Post, pk=pk)
+    if request.method == "POST":
+        form = PostDeleteForm(request.POST,
+                              instance=post)
+        if form.is_valid():
+            post.delete()
+            return redirect('post_create')
+    else:
+        form = PostDeleteForm(instance=post)
+
+    return render(request, 'flatpages/post_delete.html',
+                  {
+                      'form': form,
+                      'post': post,
+                  })
+
+# class PostCreateView(LoginRequiredMixin, CreateView):#
+#     template_name ='flatpages/post_create.html'
+#     form_class = PostForm
+#     success_url = reverse_lazy('home')
+#     login_url = reverse_lazy('home')
+#     #raise_exception = True# zeigt fehler403
+#
+#
+# # дженерик для редактирования объекта
+# class PostUpdateView(LoginRequiredMixin, UpdateView):
+#     template_name = 'flatpages/post_create.html'
+#     form_class = PostForm
+#     success_url = reverse_lazy('home')
+#     login_url = reverse_lazy('home')
+#
+#     # метод get_object мы используем вместо queryset, чтобы получить информацию об объекте, который мы собираемся редактировать
+#     def get_object(self, **kwargs):
+#         id = self.kwargs.get('pk')
+#         return Post.objects.get(pk=id)
+#
+#
+# # дженерик для удаления товара
+# class PostDeleteView(LoginRequiredMixin, DeleteView):
+#     template_name = 'flatpages/post_delete.html'
+#     queryset = Post.objects.all()
+#     success_url = reverse_lazy('post')
+#     login_url = reverse_lazy('home')
 
 

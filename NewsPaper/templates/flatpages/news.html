@@ -7,7 +7,7 @@ News
 {% endblock title %}
 
 {% block content %}
-<h1>Alle  Nachrichten in einem Blick:</h1>
+<h1>Alle Nachrichten in einem Blick:</h1>
 <h1>Heute</h1>
 <h3>{{time_now|date:'d . M. Y - H:i'}}</h3>
 <hr>
@@ -24,6 +24,7 @@ text-align:left;
 td{
 font-size:80%
 }
+
 </style>
 <!-- Change 8/12 Перед таблицей добавим форму для поиска -->
 <form method="GET">
@@ -31,102 +32,99 @@ font-size:80%
     А вот кнопку, увы придётся делать самому -->
     <input type="submit" value="suchen">
 </form>
-    <hr>
+<hr>
 {% if posts %}
-     <table>
-            <tr>
-                <th>
-                    Author
-                </th>
-                <th>
-                    Title
-                </th>
-                <th>
-                    Text
-                </th>
-                <th>
-                    Category
-                </th>
-                <th>
-                    Date
-                </th>
-                <th>
-                    Rating
-                </th>
-            </tr>
-         {% for post in posts %}
-             <tr>
+<table>
+    <tr>
+        <th>
+            id
+        </th>
+        <th>
+            Author
+        </th>
+        <th>
+            Title
+        </th>
+        <th>
+        </th>
+        <th>
+        </th>
+            Text
+        </th>
+        <th>
+            Category
+        </th>
+        <th>
+            Date
+        </th>
+        <th>
+            Rating
+        </th>
+    </tr>
+    {% for post in posts %}
+    <tr>
 
-                <td>
-                   {{post.author}}
-                </td>
-                <td>
-                    <a href="{{post.get_absolute_url}}"> {{ post.title}}</a>
-                </td>
-                <td>
-                    {{ post.text|linebreaks|truncatechars:50 }}
-                </td>
-                <td>
-                 {% for category in post.postCategory.all %}
-                    {{ category.name|linebreaks }}
-                 {% endfor%}
-                </td>
-                <td>
-                    {{ post.dateCreation|date:'d.m.Y' }}
-                </td>
-                <td>
-                    {{ post.rating }}
-                </td>
-            </tr>
+        <td>
+            {{post.id}}
+        </td>
+        <td>
+            {{post.author}}
+        </td>
+        <td>
+            <a href="{{post.get_absolute_url}}"> {{ post.title}}</a>
+        </td>
+        <td>
+            <a href="{{post.get_edit_url}}">edit</a>
+        </td>
+        <td>
+            <a href="{{post.get_delete_url}}">delete</a>
+        </td>
+        <td>
+            {{ post.text|linebreaks|truncatechars:50 }}
+        </td>
+        <td>
+            {% for category in post.postCategory.all %}
+            {{ category.name|linebreaks }}
+            {% endfor%}
+        </td>
+        <td>
+            {{ post.dateCreation|date:'d.m.Y' }}
+        </td>
+        <td>
+            {{ post.rating }}
+        </td>
+    </tr>
 
-         {% endfor%}
-        </table>
+    {% endfor%}
+</table>
 
 {% else %}
-    <h2>Keine aktuelle Nachrichten!</h2>
+<h2>Keine aktuelle Nachrichten!</h2>
 {% endif%}
 <!-- Change 8/12-->
 <!-- Проверяем что поддерживается постраничный вывод -->
 {% if is_paginated %}
-    <!-- Если доступна предыдущая страница, то даём ссылку на неё и самую первую страницу -->
-    {% if page_obj.has_previous %}
-        <a href="?page=1">First</a>
-        <a href="?page={{ page_obj.previous_page_number }}"><<<</a>
-    {% endif %}
+<!-- Если доступна предыдущая страница, то даём ссылку на неё и самую первую страницу -->
+{% if page_obj.has_previous %}
+<a href="?page=1">First</a>
+<a href="?page={{ page_obj.previous_page_number }}"><<<</a>
+{% endif %}
 
-    <!-- Показываем только текущую страницу и ближайшие к ней, чтобы список не тянулся и не захламлял страницу -->
-    {% for num in page_obj.paginator.page_range %}
-        {% if page_obj.number == num %}
-            <a>{{ num }}</a>
-        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-            <a href="?page={{ num }}">{{ num }}</a>
-        {% endif %}
-    {% endfor %}
+<!-- Показываем только текущую страницу и ближайшие к ней, чтобы список не тянулся и не захламлял страницу -->
+{% for num in page_obj.paginator.page_range %}
+{% if page_obj.number == num %}
+<a>{{ num }}</a>
+{% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+<a href="?page={{ num }}">{{ num }}</a>
+{% endif %}
+{% endfor %}
 
-    <!-- Если есть следующая страница, то даём ссылку на неё и на самую последнюю страницу -->
-    {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}">>>></a>
-        <a href="?page={{ page_obj.paginator.num_pages }}">Last</a>
-    {% endif %}
+<!-- Если есть следующая страница, то даём ссылку на неё и на самую последнюю страницу -->
+{% if page_obj.has_next %}
+<a href="?page={{ page_obj.next_page_number }}">>>></a>
+<a href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+{% endif %}
 {% endif%}
-<form method="POST">
-    {% csrf_token %}
-    {{form}}
-
-    <label for="data">dataCreation</label>
-    <input>
-
-    <!-- Здесь будет список категорий.  -->
-    <select name="category" size="4">
-
-      {% for category in categorys %}
-        <option value="{{ category.id }}">
-            {{ category.name }}
-        </option>
-      {% endfor %}
-    </select>
-    <input type="submit" value="Artikel hinzufügen">
-</form>
 {{post}}
 {% endblock content %}
 

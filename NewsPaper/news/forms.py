@@ -8,4 +8,11 @@ class PostForm(ModelForm):
 # троится форма и нужные нам поля. Мы уже делали что-то похожее с фильтрами.
     class Meta:
         model = Post
-        fields = ['author','text']
+        #fields = ['author','text','']
+        exclude=['rating','quantity', 'dateCreation']
+
+class PostDeleteForm(ModelForm):
+    class Meta:
+        model = Post
+        fields= []
+
