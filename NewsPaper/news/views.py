@@ -1,3 +1,4 @@
+import form as form
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
 from.models import Author, Category,Post,PostCategory
@@ -9,16 +10,7 @@ from django.core.paginator import Paginator
 from .filters import PostFilter
 from .forms import PostForm
 from .forms import PostDeleteForm
-from django.contrib.auth.decorators import login_required #17/12
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.utils.decorators import method_decorator # blockiert class
-from django.views.generic import TemplateView
-
-
-# blockiert class
-#class ProtectedView(LoginRequiredMixin, TemplateView):#17/12
-    #template_name = 'flatpages/news.html'
-
+from django.contrib.auth.decorators import login_required, permission_required
 
 class PostList(ListView):
     model = Post
@@ -40,13 +32,14 @@ class PostList(ListView):
         context['categorys'] = Category.objects.all()#ch
         context['form'] = PostForm()
         return context
-def post(self,request,*args,**kwargs):#ch
-    form=self.form_class(request.POST)
 
-    if form.is_valid():
-        form.save()
-
-    return super().get(request,*args,**kwargs)
+    # def post(self,request,*args,**kwargs):#ch
+    #     form=self.form_class(request.POST)
+    #
+    #     if form.is_valid():
+    #         form.save()
+    #
+    #     return super().get(request,*args,**kwargs)
 
 
 class PostDetail(DetailView):
@@ -55,7 +48,8 @@ class PostDetail(DetailView):
     context_object_name = 'post'
     queryset = Post.objects.all()#
 
-@login_required(login_url='/accounts/login/') #18/12
+#@login_required(login_url='/accounts/login/') #18/12
+@permission_required('news.add_post','/accounts/login/',True)
 def post_create(request):
     if request.method == 'POST':
         form = PostForm(request.POST)
@@ -71,7 +65,8 @@ def post_create(request):
                   })
 
 
-@login_required(login_url='/accounts/login/') #18/12
+#@login_required(login_url='/accounts/login/') #18/12
+@permission_required('news.change_post','/accounts/login/',True)
 def post_edit(request, pk=None):
     post = get_object_or_404(Post, pk=pk)
     if request.method == "POST":
@@ -91,7 +86,8 @@ def post_edit(request, pk=None):
                   })
 
 
-@login_required(login_url='/accounts/login/') #18/12
+#@login_required(login_url='/accounts/login/') #18/12
+@permission_required('news.delete_post','/accounts/login/',True)
 def post_delete(request, pk=None):
     post = get_object_or_404(Post, pk=pk)
     if request.method == "POST":
