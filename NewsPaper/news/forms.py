@@ -1,5 +1,5 @@
 from django.forms import ModelForm
-from .models import Post
+from .models import Post, SubUser
 
 
 # Создаём модельную форму
@@ -16,3 +16,7 @@ class PostDeleteForm(ModelForm):
         model = Post
         fields= []
 
+class SubscribeForm(ModelForm):
+    class Meta:
+        model= SubUser
+        fields= []

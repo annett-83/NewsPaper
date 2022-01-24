@@ -1,0 +1,18 @@
+{% extends 'flatpages/default.html' %}
+{% block content %}
+
+<h1>Hallo, {{request.user.username}} Möchten Sie abonieren?</h1>
+<form method="POST" action="">
+    {% csrf_token%}
+
+    <label for="category_name"><h2>Category:</h2></label><br>
+    <input type="radio" name="category_name" value='Education'>Education<br>
+    <input type="radio" name="category_name" value='Science'>Science<br>
+    <input type="radio" name="category_name" value='Economy'>Economy<br>
+    <input type="radio" name="category_name" value='Sport'>Sport<br>
+
+
+    <input type="submit">
+</form>
+
+{% endblock %}

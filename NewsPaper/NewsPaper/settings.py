@@ -39,13 +39,16 @@ AUTHENTICATION_BACKENDS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'news.apps.NewsConfig',
+
+    "django_apscheduler",
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'news',
     'accounts',
     'django.contrib.sites',
     'django.contrib.flatpages',
@@ -103,8 +106,26 @@ ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_FORMS = {'signup': 'sign.forms.BasicSignupForm'}
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+
 
 LOGIN_REDIRECT_URL = '/'
+
+EMAIL_HOST = 'smtp.yandex.ru'  # адрес сервера Яндекс-почты для всех один и тот же
+EMAIL_PORT = 465 #порт smtp сервера тоже одинаковый
+EMAIL_HOST_USER = 'nura.auxutat@yandex.ru'  # ваше имя пользователя, например, если ваша почта user@yandex.ru, то сюда надо писать user, иными словами, это всё то что идёт до собаки
+EMAIL_HOST_PASSWORD = '!Fickdichdoch1'  # пароль от почты
+EMAIL_USE_SSL = True  # Яндекс использует ssl, подробнее о том, что это, почитайте в дополнительных источниках, но включать его здесь обязательно
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+
+ADMINS = [
+    ('nova833', 'nova833@mail.ru'),
+    # список всех админов в формате ('имя', 'их почта')
+]
+SERVER_EMAIL = 'nura.auxutat@yandex.ru'  # это будет у нас вместо аргумента FROM в массовой рассылке
 
 WSGI_APPLICATION = 'NewsPaper.wsgi.application'
 
