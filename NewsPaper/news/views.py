@@ -1,50 +1,45 @@
-import form as form
 from allauth.account.signals import user_signed_up
-from django.contrib.auth.models import User
 from django.dispatch import receiver
 from django.template.loader import render_to_string
-from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
 from .models import Author, Category, Post, PostCategory, Appointment, SubUser
 from datetime import datetime
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.core.mail import send_mail, EmailMultiAlternatives, mail_admins
-from .models import Appointment
 from django.views import View
-from django.core.paginator import Paginator
 from .filters import PostFilter
 from .forms import PostForm
 from .forms import PostDeleteForm
 from django.contrib.auth.decorators import login_required, permission_required
+from celery import shared_task
 
 EMAIL_LINK_DOMAIN = 'http://127.0.0.1:8000' #Das ist ein Scheiß Platz. Das sollte Zentraler..aber für erst mal reicht es
 
-
-def SubscriberNotificationMail():
-    for category in Category.objects.all():
-        Posts=Post.objects.filter(postCategory=category)
+# Dekorator, wird von app.autodiscover_tasks() in celery.py gesucht
+@shared_task
+def SubscriberNotificationMail(): # Einfache Methode ohne Argumente
+    for category in Category.objects.all(): # Eine Schleife, die durch alle vorhandenen Artikelkategorien läuft
+        Posts=Post.objects.filter(postCategory=category) # Alle Posts die zu dieser Kategorie gehören
         # Achtung, bei den Posts fehlt noch der Filter "maximal eine Woche alt", aber darauf scheißen wir erst mal
-        subject = f' Ihre Abos'
-        subscriber = category.get_subscriber_mail_adresses()
-        html_content = render_to_string(
+        subject = f' Ihre Abos' # Betreff der email
+        subscriber = category.get_subscriber_mail_adresses() # Methode die alle Subscriber dieser Kategorie zurückliefert
+        # email inhalt, das was subscriber bekommt
+        html_content = render_to_string( # Hier wird die html gerendert
             'flatpages/subscription_email_postlist_by_category.html',
             {
-                'posts': Posts,
-                'category': category,
-                'email_link_domain': EMAIL_LINK_DOMAIN
+                'posts': Posts, #Eine Liste mit Posts die zu der Kategorie gehören
+                'category': category, # Die Kategorie
+                'email_link_domain': EMAIL_LINK_DOMAIN # Die Angabe, wie der Benutzer die url erreicht. Also /news -> www.annas-supernews.ru/news
             }
         )
-        msg = EmailMultiAlternatives(
-            subject=subject,
-            # body=email.message,  # это то же, что и message
-            # from_email='nura.auxutat@yandex.ru',
+        msg = EmailMultiAlternatives( # das Ding bastlt die emails zusammen für jeden Subscriber
+            subject=subject, # Text wird oben generiert (Betreff)
             to=subscriber,  # это то же, что и recipients_list
         )
 
-        msg.attach_alternative(html_content, "text/html")  # добавляем html
-
-        msg.send()  # отсылаем
-        i=1
+        msg.attach_alternative(html_content, "text/html")  # добавляем html Die html, die oben generiert wird
+        print("Wöchentliche email gesendet") # Damit man sieht, dass das Ding was tut
+        msg.send()  # отсылаем Uuuuuuuuuuuund weg, die 'ure
 
 
 class PostList(ListView):
@@ -69,23 +64,14 @@ class PostList(ListView):
         context['form'] = PostForm()
         return context
 
-    # def post(self,request,*args,**kwargs):#ch
-    #     form=self.form_class(request.POST)
-    #
-    #     if form.is_valid():
-    #         form.save()
-    #
-    #     return super().get(request,*args,**kwargs)
-
-
 class PostDetail(DetailView):
     model = Post
     template_name = 'flatpages/new.html'
     context_object_name = 'post'
     queryset = Post.objects.all()  #
 
-
 # @login_required(login_url='/accounts/login/') #18/12
+
 @permission_required('news.add_post', '/accounts/login/', True)
 def post_create(request):
     if request.method == 'POST':
@@ -152,12 +138,6 @@ class SubUserView(View):
         category_name = request.POST['category_name']
         category = Category.objects.get(name=category_name)
 
-         # email = ''
-         # if hasattr(request.user, email): # gibt es eine email wird verwendet
-         #     email=request.user.email
-         # else:
-         #     email=request.POST['email'] # gibt es keine email verwenden die eingegebene
-
         subscription = SubUser(
             sub_user=request.user,
             category=category,
@@ -192,6 +172,7 @@ def user_signed_up_(sender, request, user, **kwargs):
     html_content = render_to_string(
         'flatpages/user_signed_up_create.html',
         {
+            'email_link_domain': EMAIL_LINK_DOMAIN
         }
     )
     msg = EmailMultiAlternatives(subject,"some text" , from_email, [to])
@@ -233,52 +214,52 @@ def user_signed_up_(sender, request, user, **kwargs):
         #
 
 
-class AppointmentView(View):
-    def get(self, request, *args, **kwargs):
-        return render(request, 'flatpages/appointment.html', {})
-
-    def post(self, request, *args, **kwargs):
-        appointment = Appointment(
-            date=datetime.strptime(request.POST['date'], '%Y-%m-%d'),
-            client_name=request.POST['client_name'],
-            message=request.POST['message'],
-        )
-        appointment.save()
-
-        # отправляем письмо
-        send_mail(
-            subject=f'{appointment.client_name} {appointment.date.strftime("%Y-%M-%d")}',
-            # имя клиента и дата записи будут в теме для удобства
-            message=appointment.message,  # сообщение с кратким описанием проблемы
-            from_email='nura.auxutat@yandex.ru',
-            # здесь указываете почту, с которой будете отправлять (об этом попозже)
-            recipient_list=['ann.auksutat@yandex.ru']  # здесь список получателей. Например, секретарь, сам врач и т. д.
-        )
-
-        # получаем наш html
-        html_content = render_to_string(
-            'flatpages/appointment_created.html',
-            {
-                'appointment': appointment,
-            }
-        )
-
-        # в конструкторе уже знакомые нам параметры, да? Называются правда немного по другому, но суть та же.
-        msg = EmailMultiAlternatives(
-            subject=f'{appointment.client_name} {appointment.date.strftime("%Y-%M-%d")}',
-            body=appointment.message,  # это то же, что и message
-            from_email='nura.auxutat@yandex.ru',
-            to=['ann.auksutat@yandex.ru'],  # это то же, что и recipients_list
-        )
-        msg.attach_alternative(html_content, "text/html")  # добавляем html
-
-        msg.send()  # отсылаем
-        # отправляем письмо всем админам по аналогии с send_mail, только здесь получателя указывать не надо
-        mail_admins(
-            subject=f'{appointment.client_name} {appointment.date.strftime("%d %m %Y")}',
-            message=appointment.message,
-        )
-        return redirect('make_appointment')
+# class AppointmentView(View):
+#     def get(self, request, *args, **kwargs):
+#         return render(request, 'flatpages/appointment.html', {})
+#
+#     def post(self, request, *args, **kwargs):
+#         appointment = Appointment(
+#             date=datetime.strptime(request.POST['date'], '%Y-%m-%d'),
+#             client_name=request.POST['client_name'],
+#             message=request.POST['message'],
+#         )
+#         appointment.save()
+#
+#         # отправляем письмо
+#         send_mail(
+#             subject=f'{appointment.client_name} {appointment.date.strftime("%Y-%M-%d")}',
+#             # имя клиента и дата записи будут в теме для удобства
+#             message=appointment.message,  # сообщение с кратким описанием проблемы
+#             from_email='nura.auxutat@yandex.ru',
+#             # здесь указываете почту, с которой будете отправлять (об этом попозже)
+#             recipient_list=['ann.auksutat@yandex.ru']  # здесь список получателей. Например, секретарь, сам врач и т. д.
+#         )
+#
+#         # получаем наш html
+#         html_content = render_to_string(
+#             'flatpages/appointment_created.html',
+#             {
+#                 'appointment': appointment,
+#             }
+#         )
+#
+#         # в конструкторе уже знакомые нам параметры, да? Называются правда немного по другому, но суть та же.
+#         msg = EmailMultiAlternatives(
+#             subject=f'{appointment.client_name} {appointment.date.strftime("%Y-%M-%d")}',
+#             body=appointment.message,  # это то же, что и message
+#             from_email='nura.auxutat@yandex.ru',
+#             to=['ann.auksutat@yandex.ru'],  # это то же, что и recipients_list
+#         )
+#         msg.attach_alternative(html_content, "text/html")  # добавляем html
+#
+#         msg.send()  # отсылаем
+#         # отправляем письмо всем админам по аналогии с send_mail, только здесь получателя указывать не надо
+#         mail_admins(
+#             subject=f'{appointment.client_name} {appointment.date.strftime("%d %m %Y")}',
+#             message=appointment.message,
+#         )
+#         return redirect('make_appointment')
 
 # class PostCreateView(LoginRequiredMixin, CreateView):#
 #     template_name ='flatpages/post_create.html'

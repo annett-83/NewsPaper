@@ -35,7 +35,7 @@ class Category(models.Model):
     name = models.CharField(max_length=64, unique=True)  # значения max_length берут как 2 в  степени
     subscriber = models.ManyToManyField(User, through='SubUser')
 
-    def get_subscriber_mail_adresses(self):
+    def get_subscriber_mail_adresses(self): # Methode die alle Benutzer-emails sucht, die diese Kategorie abbobiert haben
         a = User.objects.filter(category=self).values_list('email', flat=True).distinct()
         return list(a)
 

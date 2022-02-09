@@ -8,6 +8,6 @@
 <body>
 {% load account%}
 <h2>Danke für die Registrierung!</h2>
-<h3>Bitte folgen Sie <a href="{% url 'all_news' %}"> den News</a></h3>
+<h3>Bitte folgen Sie <a href="{{email_link_domain}}{% url 'all_news' %}"> den News</a></h3>
 </body>
 </html>
