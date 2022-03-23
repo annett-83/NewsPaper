@@ -76,7 +76,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
-
+    'NewsPaper.middleware.MobileTemplatesMiddleware',
 ]
 
 ROOT_URLCONF = 'NewsPaper.urls'
@@ -96,6 +96,12 @@ TEMPLATES = [
         },
     },
 ]
+
+# Hier mache ich zwei neue Variablen. Die eine zeigt ganz normal auf templates
+# die andere guckt auf einen unterordner in templates (mobile, gibt es noch nicht)
+DESKTOP_TEMPLATE_DIRS = (os.path.join(BASE_DIR, 'templates'),)
+MOBILE_TEMPLATE_DIRS = (os.path.join(BASE_DIR, 'templates/mobile'),)
+
 
 
 LOGIN_URL = '/accounts/login/'
@@ -201,3 +207,116 @@ CACHES = {
 }
 
 #
+LOG_PATH = os.path.join(BASE_DIR, "../log/")
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'formatters': {
+        'standard_1': {
+            'format': '%(asctime)s [%(levelname)s]- %(message)s'
+        },
+        'standard_2': {
+            'format': '%(asctime)s [%(levelname)s]- %(message)s  %(pathname) '
+        },
+        'standard_3': {
+            'format ': '%(asctime)s [%(levelname)s]- %(message)s  %(pathname) %(stack_info)'
+        },
+        'standard_4': {
+            'format': '%(asctime)s [%(levelname)s] - %(func)s - %(message)s'
+        },
+    },
+    'handlers': {
+        'console_debug': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'filters': ['require_debug_true'],
+            'formatter': 'standard_1'
+        },
+        'console_warning': {
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'filters': ['require_debug_true'],
+            'formatter': 'standard_2'
+        },
+        'console_error': {
+            'level': 'ERROR',
+            'class': 'logging.StreamHandler',
+            'filters': ['require_debug_true'],
+            'formatter': 'standard_3'
+        },
+        'general_log': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_PATH + 'general.log',
+            'filters': ['require_debug_false'],
+            'formatter': 'standard_4'
+        },
+        'errors_log': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_PATH + 'errors.log',
+            'formatter': 'standard_3'
+        },
+        'security_log': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_PATH + 'security.log',
+            'formatter': 'standard_4'
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'filters': ['require_debug_false'],
+            'formatter': 'standard_2'
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console_debug', 'console_warning', 'console_error', 'general_log'],
+            'level': 'DEBUG',
+            'propagate': True
+        },
+        'django.request': {
+            'handlers': ['errors_log','mail_admins'],
+            'level': 'ERROR',
+            'propagate': True
+        },
+        'django.server': {
+            'handlers': ['errors_log','mail_admins'],
+            'level': 'ERROR',
+            'propagate': True
+        },
+        'django.template': {
+            'handlers': ['errors_log'],
+            'level': 'ERROR',
+            'propagate': True
+        },
+        'django.db_backends': {
+            'handlers': ['errors_log'],
+            'level': 'ERROR',
+            'propagate': True
+        },
+        'django.security': {
+            'handlers': ['security_log'],
+            'level': 'INFO',
+            'propagate': True
+        },
+
+    },
+}
+
+
+
+
+
+
+

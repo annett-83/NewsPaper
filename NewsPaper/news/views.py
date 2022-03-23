@@ -2,7 +2,7 @@ from allauth.account.signals import user_signed_up
 from django.dispatch import receiver
 from django.template.loader import render_to_string
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
-from .models import Author, Category, Post, PostCategory, Appointment, SubUser
+from .models import Author, Category, Post, PostCategory, SubUser
 from datetime import datetime
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.core.mail import send_mail, EmailMultiAlternatives, mail_admins
@@ -12,6 +12,8 @@ from .forms import PostForm
 from .forms import PostDeleteForm
 from django.contrib.auth.decorators import login_required, permission_required
 from celery import shared_task
+
+
 
 EMAIL_LINK_DOMAIN = 'http://127.0.0.1:8000' #Das ist ein Scheiß Platz. Das sollte Zentraler..aber für erst mal reicht es
 
@@ -42,19 +44,20 @@ def SubscriberNotificationMail(): # Einfache Methode ohne Argumente
         msg.send()  # отсылаем Uuuuuuuuuuuund weg, die 'ure
 
 
-class PostList(ListView):
-    model = Post
-    template_name = 'flatpages/news.html'
-    context_object_name = 'posts'
-    queryset = Post.objects.order_by('-dateCreation')
-    paginate_by = 1
-    from_class = PostForm  #
-
-    def get_filter(self):
+# Das ganze Ding müssen wir uns noch mal komplett angucken
+# ich habe keine Ahnung, wie das funktioniert
+class PostList(ListView): # Die Übersichstsseite mit den Artikeln
+    model = Post # Referenz auf das Modell
+    template_name = 'flatpages/news.html' # Angabe des Template
+    context_object_name = 'posts' #  Oh fuck, Maus, das müssen wir uns echt noch mal angucken
+    queryset = Post.objects.order_by('-dateCreation') #Alle Posts, geordnet nach Erstellungsdatum
+    paginate_by = 3 # Attribut für deinen Paginator - Anzahl der Artikel pro Seite
+    from_class = PostForm  # No idea
+    def get_filter(self):#wtf
         return PostFilter(self.request.GET, queryset=super().get_queryset())
 
-    def get_queryset(self):
-        return self.get_filter().qs  # rufen die Metode auf, suchen nach Stichwörter dees Titles.
+    def get_queryset(self):#wtf
+        return self.get_filter().qs  # ruft die Methode auf, suchen nach Stichwörter dees Titles.
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -64,31 +67,35 @@ class PostList(ListView):
         context['form'] = PostForm()
         return context
 
-class PostDetail(DetailView):
-    model = Post
-    template_name = 'flatpages/new.html'
-    context_object_name = 'post'
+# Müssen wir uns auch noch mal bezüglich der inneren Logik anschauen
+class PostDetail(DetailView): # Auch Akrakadabra
+    model = Post # Klar
+    template_name = 'flatpages/new.html' # Klar
+    context_object_name = 'post' # pfff
     queryset = Post.objects.all()  #
 
-# @login_required(login_url='/accounts/login/') #18/12
-
+# Dekorator, dass der AKTUELLE Benutzer das überhaupt aufrufen darf
+# HTML kennt (scheinbar) zwei Methoden. POST und GET.
+# GET ist, wenn die Seite das erste Mal aufgerufen wird.
+# Also so ziemlich immer.
+# POST wird aufgerufen, wenn der Datenfluss umgekehrt ist.
+# Der Benutzer also irgendwelche Daten hoch lädt.
 @permission_required('news.add_post', '/accounts/login/', True)
 def post_create(request):
-    if request.method == 'POST':
+    if request.method == 'POST': #Abfrage, welche Sorte die Anfrage ist
         form = PostForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('post_create')
+        if form.is_valid(): # Überprüfung, ob die Daten gültig sind
+            form.save() #Speichern in der Datenbank
+            return redirect('post_create') # Umleitung auf die Dankeschön Page
     else:
-        form = PostForm()
-    return render(request,
-                  'flatpages/post_create.html',
+        form = PostForm() # Wenn es die erste Anfage ist, anzeigen des Formulars
+    return render(request, # Rendern ist aus Daten eine Anzeige machen
+                  'flatpages/post_create.html', # Vorlage
                   {
-                      'form': form
+                      'form': form # Übergabe der form als Parameter. Das ganze Prinzip müssen wir uns noch mal anschauen
                   })
 
-
-# @login_required(login_url='/accounts/login/') #18/12
+#Gleicher Scheiß wie oben
 @permission_required('news.change_post', '/accounts/login/', True)
 def post_edit(request, pk=None):
     post = get_object_or_404(Post, pk=pk)
@@ -109,7 +116,7 @@ def post_edit(request, pk=None):
                   })
 
 
-# @login_required(login_url='/accounts/login/') #18/12
+# Ebenfalls
 @permission_required('news.delete_post', '/accounts/login/', True)
 def post_delete(request, pk=None):
     post = get_object_or_404(Post, pk=pk)
@@ -129,7 +136,8 @@ def post_delete(request, pk=None):
                   })
 
 
-# @login_required(login_url='/accounts/login/') #18/12
+# Müssen wir uns auch noch mal angucken
+# Wie funktioniert die Interaktion zwischen views und forms
 class SubUserView(View):
     def get(self, request, *args, **kwargs):
         return render(request, 'flatpages/subscribe.html', {})
@@ -166,7 +174,7 @@ class SubUserView(View):
 
         return redirect('')
 
-@receiver(user_signed_up)
+@receiver(user_signed_up) #Wie oben
 def user_signed_up_(sender, request, user, **kwargs):
     subject, from_email, to = 'Willkommen. Sie haben sich erfolgreich bei News angemeldet.', 'nura.auxutat@yandex.ru', user.email
     html_content = render_to_string(
@@ -178,113 +186,3 @@ def user_signed_up_(sender, request, user, **kwargs):
     msg = EmailMultiAlternatives(subject,"some text" , from_email, [to])
     msg.attach_alternative(html_content, "text/html")  # добавляем html
     msg.send()
-        # send_mail(
-        # subject=f'{appointment.client_name} {appointment.date.strftime("%Y-%M-%d")}',
-        #     # имя клиента и дата записи будут в теме для удобства
-        #     message=appointment.message,  # сообщение с кратким описанием проблемы
-        #   from_email='nura.auxutat@yandex.ru',
-        #     # здесь указываете почту, с которой будете отправлять (об этом попозже)
-        # recipient_list=['ann.auksutat@yandex.ru']  # здесь список получателей. Например, секретарь, сам врач и т. д.
-        # )
-        #
-        # # получаем наш html
-        # html_content = render_to_string(
-        #     'flatpages/appointment_created.html',
-        #     {
-        #         'appointment': appointment,
-        #     }
-        # )
-        #
-        # # в конструкторе уже знакомые нам параметры, да? Называются правда немного по другому, но суть та же.
-        # msg = EmailMultiAlternatives(
-        #     subject=f'{appointment.client_name} {appointment.date.strftime("%Y-%M-%d")}',
-        #     body=appointment.message,  # это то же, что и message
-        #     from_email='nura.auxutat@yandex.ru',
-        #     to=['ann.auksutat@yandex.ru'],  # это то же, что и recipients_list
-        # )
-        # msg.attach_alternative(html_content, "text/html")  # добавляем html
-        #
-        # msg.send()  # отсылаем
-        # # отправляем письмо всем админам по аналогии с send_mail, только здесь получателя указывать не надо
-        # mail_admins(
-        #     subject=f'{appointment.client_name} {appointment.date.strftime("%d %m %Y")}',
-        #     message=appointment.message,
-        # )
-        # return redirect('make_appointment')
-        #
-
-
-# class AppointmentView(View):
-#     def get(self, request, *args, **kwargs):
-#         return render(request, 'flatpages/appointment.html', {})
-#
-#     def post(self, request, *args, **kwargs):
-#         appointment = Appointment(
-#             date=datetime.strptime(request.POST['date'], '%Y-%m-%d'),
-#             client_name=request.POST['client_name'],
-#             message=request.POST['message'],
-#         )
-#         appointment.save()
-#
-#         # отправляем письмо
-#         send_mail(
-#             subject=f'{appointment.client_name} {appointment.date.strftime("%Y-%M-%d")}',
-#             # имя клиента и дата записи будут в теме для удобства
-#             message=appointment.message,  # сообщение с кратким описанием проблемы
-#             from_email='nura.auxutat@yandex.ru',
-#             # здесь указываете почту, с которой будете отправлять (об этом попозже)
-#             recipient_list=['ann.auksutat@yandex.ru']  # здесь список получателей. Например, секретарь, сам врач и т. д.
-#         )
-#
-#         # получаем наш html
-#         html_content = render_to_string(
-#             'flatpages/appointment_created.html',
-#             {
-#                 'appointment': appointment,
-#             }
-#         )
-#
-#         # в конструкторе уже знакомые нам параметры, да? Называются правда немного по другому, но суть та же.
-#         msg = EmailMultiAlternatives(
-#             subject=f'{appointment.client_name} {appointment.date.strftime("%Y-%M-%d")}',
-#             body=appointment.message,  # это то же, что и message
-#             from_email='nura.auxutat@yandex.ru',
-#             to=['ann.auksutat@yandex.ru'],  # это то же, что и recipients_list
-#         )
-#         msg.attach_alternative(html_content, "text/html")  # добавляем html
-#
-#         msg.send()  # отсылаем
-#         # отправляем письмо всем админам по аналогии с send_mail, только здесь получателя указывать не надо
-#         mail_admins(
-#             subject=f'{appointment.client_name} {appointment.date.strftime("%d %m %Y")}',
-#             message=appointment.message,
-#         )
-#         return redirect('make_appointment')
-
-# class PostCreateView(LoginRequiredMixin, CreateView):#
-#     template_name ='flatpages/post_create.html'
-#     form_class = PostForm
-#     success_url = reverse_lazy('home')
-#     login_url = reverse_lazy('home')
-#     #raise_exception = True# zeigt fehler403
-#
-#
-# # дженерик для редактирования объекта
-# class PostUpdateView(LoginRequiredMixin, UpdateView):
-#     template_name = 'flatpages/post_create.html'
-#     form_class = PostForm
-#     success_url = reverse_lazy('home')
-#     login_url = reverse_lazy('home')
-#
-#     # метод get_object мы используем вместо queryset, чтобы получить информацию об объекте, который мы собираемся редактировать
-#     def get_object(self, **kwargs):
-#         id = self.kwargs.get('pk')
-#         return Post.objects.get(pk=id)
-#
-#
-# # дженерик для удаления товара
-# class PostDeleteView(LoginRequiredMixin, DeleteView):
-#     template_name = 'flatpages/post_delete.html'
-#     queryset = Post.objects.all()
-#     success_url = reverse_lazy('post')
-#     login_url = reverse_lazy('home')
